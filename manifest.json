@@ -12,7 +12,7 @@
         "http://localhost/8080/tst-org-sync/write"
     ],
 
-    "permissions": ["storage"],
+    "permissions": ["storage", "tabs"],
 
     "description": "automatically backup tree-style-tab's state to human-readable and emacs-editable org-mode, and open the contents of a formatted emacs org-mode file into a tree-style-tabs tree.",
 

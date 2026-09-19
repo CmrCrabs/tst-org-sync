@@ -5,6 +5,7 @@ browser.runtime.onInstalled.addListener(onInstalled);
 browser.runtime.onStartup.addListener(onStartup);
 
 let scheduleLocalUpdate;
+initialise();
 
 browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     (async () => {
@@ -75,21 +76,29 @@ function debounce(callback, wait) {
     return debounced;
 }
 async function readTSTTabs() {
-    let raw_tree = await browser.runtime.sendMessage(TST_ID, {
-        type: "get-tree",
-        window: 0,
-        tabs: "*",
-    });
+    let tst_tree = await browser.runtime
+        .sendMessage(TST_ID, {
+            type: "get-tree",
+            window: 0,
+            tabs: "*",
+        })
+        .catch(onErr);
 
-    return raw_tree.map((t) => ({
-        id: t.id,
-        indent: t.indent,
-        index: t.index,
-        pinned: t.pinned,
-        group: t.url.includes("group-tab.html?"),
-        url: t.url,
-        title: t.title,
-    }));
+    return await Promise.all(
+        tst_tree.flat().map(async (tstt) => {
+            const tab = await browser.tabs.get(tstt.id);
+
+            return {
+                id: tab.id,
+                indent: tstt.indent,
+                index: tab.index,
+                pinned: tab.pinned,
+                group: tab.url.includes("group-tab.html?"),
+                url: tab.url,
+                title: tab.title,
+            };
+        }),
+    );
 }
 
 function generateOrg(tabs) {
@@ -160,13 +169,14 @@ function parseOrg(org) {
                 };
             } else {
                 let l = line.split(" ");
+                let title = l.slice(1).join(" ");
                 return {
                     indent: l[0].length - 1,
                     id: null,
                     pinned: false,
                     index: index,
-                    url: `ext+treestyletab:group?title=${l[1]}`,
-                    title: l[1],
+                    url: `ext+treestyletab:group?title=${title}`,
+                    title: title,
                 };
             }
         });
